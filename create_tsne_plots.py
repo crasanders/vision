@@ -5,13 +5,18 @@ import pandas as pd
 from sklearn.manifold.t_sne import TSNE
 import matplotlib.pyplot as plt
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
+from matplotlib.patches import Patch
 
 category_exemplars = pd.read_csv('category_exemplars.txt', delim_whitespace=True)
 exemplar_ids = pd.read_csv('category_exemplars_ids.txt', delim_whitespace=True)
 
 
-def plot_images(folder_path, cat, coordinates, title, fig_size, im_zoom):
-    colors = ['red', 'orange', 'green', 'cyan', 'blue', 'magenta']
+def plot_images(folder_path, save_folder, cat, coordinates, title, fig_size, im_zoom):
+    n_categories = 6
+    colors = sns.color_palette("hls", n_categories)
+    legend_elements =[]
+    for c, color in enumerate(colors):
+        legend_elements.append(Patch(edgecolor=color, facecolor='none', label=category_exemplars[cat][c], linewidth=2))
     x = coordinates[:, 0]
     y = coordinates[:, 1]
     fig = plt.figure(figsize=(fig_size, fig_size))
@@ -34,10 +39,10 @@ def plot_images(folder_path, cat, coordinates, title, fig_size, im_zoom):
                 y0 = y[i]
                 if studied:
                     ab = AnnotationBbox(im, (x0, y0), xycoords='data', frameon=True, pad=0.1,
-                                        bboxprops=dict(edgecolor=colors[j], linestyle='-'))
+                                        bboxprops=dict(edgecolor=colors[j], linestyle='-', linewidth=2))
                 elif exemplar:
                     ab = AnnotationBbox(im, (x0, y0), xycoords='data', frameon=True, pad=0.1,
-                                        bboxprops=dict(edgecolor=colors[j], linestyle='--'))
+                                        bboxprops=dict(edgecolor=colors[j], linestyle='--', linewidth=2))
                 else:
                     ab = AnnotationBbox(im, (x0, y0), xycoords='data', frameon=False)
 
@@ -47,20 +52,24 @@ def plot_images(folder_path, cat, coordinates, title, fig_size, im_zoom):
     for spine in ax.spines.values():
         spine.set_visible(False)
     plt.axis('equal')
-    plt.savefig(title + '.png')
+    plt.legend(handles=legend_elements, loc='best')
+    plt.savefig(os.path.join(save_folder, title + '.png'))
 
 
 categories = np.loadtxt('categories.txt', dtype=str)
 
 rep = 'resnet50'
+save_folder = 'tsne_plots'
 
 X = np.loadtxt('vet_{}.txt'.format(rep))
 tsne = TSNE().fit_transform(X)
 
 plot = sns.scatterplot(tsne[:, 0], tsne[:, 1], hue=categories)
 lgd = plot.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-plt.savefig('vet_{}_tsne.png'.format(rep), bbox_extra_artists=(lgd,), bbox_inches='tight')
+plt.savefig(os.path.join(save_folder, 'vet_{}_tsne.png'.format(rep)), bbox_extra_artists=(lgd,), bbox_inches='tight')
 
-cat = 'Butterflies'
-plot_images(os.path.join('VET_pngs', cat), cat, tsne[categories == cat, :], 'vet_{}_{}_tsne'.format(rep, cat), 12, .1)
+for cat in set(categories):
+    x = X[categories == cat, :]
+    tsne = TSNE(perplexity=10).fit_transform(x)
+    plot_images(os.path.join('VET_pngs', cat), 'tsne_plots', cat, tsne, 'vet_{}_{}_tsne'.format(rep, cat), 12, .1)
 
