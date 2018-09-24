@@ -23,7 +23,8 @@ n_exemplars = 6
 n_choices = 3
 
 model_responses = []
-for c in np.arange(0, 100, 2):
+for log_c in np.arange(0, 3, .1):
+    c = 10 ** log_c
     probs = np.zeros((vet_trials.shape[0], n_choices))
 
     for t, row in vet_trials.iterrows():
@@ -48,25 +49,28 @@ for c in np.arange(0, 100, 2):
     probs = pd.DataFrame(probs, columns=['target_response', 'dist1response', 'dist2response'])
 
     model_response = pd.concat((vet_trials, probs), axis=1)
-    model_response['c'] = c
+    model_response['log_c'] = log_c
     model_responses.append(model_response)
 
 all_models = pd.concat(model_responses)
 
 folder = 'accuracy_plots'
 
-by_category = all_models.groupby(['Category', 'c'], as_index=False)['target_response'].mean()
-plot = sns.lineplot(x='c', y='target_response', hue='Category', data=by_category)
+by_category = all_models.groupby(['Category', 'log_c'], as_index=False)['target_response'].mean()
+plot = sns.lineplot(x='log_c', y='target_response', hue='Category', data=by_category)
 lgd = plot.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 plt.ylabel('Accuracy')
 plt.savefig(os.path.join(folder, 'vet_{}_accuracy.jpg'.format(rep)), bbox_extra_artists=(lgd,), bbox_inches='tight')
+# plt.show()
 plt.close()
 
 for cat in set(vet_trials['Category']):
     category = all_models.query('Category == "{}"'.format(cat))
-    by_subcategory = category.groupby(['Subcategory', 'c'], as_index=False)['target_response'].mean()
-    plot = sns.lineplot(x='c', y='target_response', hue='Subcategory', data=by_subcategory)
+    by_subcategory = category.groupby(['Subcategory', 'log_c'], as_index=False)['target_response'].mean()
+    plot = sns.lineplot(x='log_c', y='target_response', hue='Subcategory', data=by_subcategory,
+                        hue_order=sorted(set(category['Subcategory'])), palette=sns.color_palette("hls", n_exemplars))
     lgd = plot.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     plt.ylabel('Accuracy')
-    plt.savefig(os.path.join(folder, 'vet_{}_{}_accuracy.jpg'.format(rep, cat)), bbox_extra_artists=(lgd,), bbox_inches='tight')
+    plt.savefig(os.path.join(folder, 'vet_{}_{}_accuracy.jpg'.format(rep, cat)), bbox_extra_artists=(lgd,),
+                bbox_inches='tight')
     plt.close()
