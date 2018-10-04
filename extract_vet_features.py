@@ -1,6 +1,7 @@
-from keras.applications import vgg16, inception_resnet_v2, resnet50, densenet
+from keras.applications import vgg16, inception_v3, resnet50, densenet
 from keras.preprocessing import image
 from keras.models import Model
+import keras.backend as K
 import numpy as np
 import os
 
@@ -29,17 +30,21 @@ np.savetxt('vet_pixels.txt', image_vectors, fmt='%.3i')
 
 base_model = vgg16.VGG16(weights='imagenet', include_top=True, pooling='avg')
 model = Model(inputs=base_model.input, outputs=base_model.get_layer('fc2').output)
-features = model.predict(vgg16.preprocess_input(X))
+features = model.predict(vgg16.preprocess_input(X.copy()))
 np.savetxt('vet_vgg16.txt', features, fmt='%.18f')
+K.clear_session()
 
-model = inception_resnet_v2.InceptionResNetV2(weights='imagenet', include_top=False, pooling='avg')
-features = model.predict(inception_resnet_v2.preprocess_input(X))
-np.savetxt('vet_inceptionresnetv2.txt', features, fmt='%.18f')
+model = inception_v3.InceptionV3(weights='imagenet', include_top=False, pooling='avg')
+features = model.predict(inception_v3.preprocess_input(X.copy()))
+np.savetxt('vet_inceptionv3.txt', features, fmt='%.18f')
+K.clear_session()
 
 model = resnet50.ResNet50(weights='imagenet', include_top=False, pooling='avg')
-features = model.predict(resnet50.preprocess_input(X))
+features = model.predict(resnet50.preprocess_input(X.copy()))
 np.savetxt('vet_resnet50.txt', features, fmt='%.18f')
+K.clear_session()
 
 model = densenet.DenseNet201(weights='imagenet', include_top=False, pooling='avg')
-features = model.predict(densenet.preprocess_input(X))
+features = model.predict(densenet.preprocess_input(X.copy()))
 np.savetxt('vet_densenet201.txt', features, fmt='%.18f')
+K.clear_session()
