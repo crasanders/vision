@@ -16,15 +16,7 @@ dis2 = []
 simcats = []
 discats = []
 
-for i, row in trials.drop_duplicates(['tarname', 'dist1name', 'dist2name']).iterrows():
-    dis1.append(indices[row['tarname']])
-    dis2.append(indices[row['dist1name']])
-
-    dis1.append(indices[row['tarname']])
-    dis2.append(indices[row['dist2name']])
-
-    discats.extend([row['Category']] * 2)
-
+for i, row in trials.drop_duplicates(['dist1name', 'dist2name']).iterrows():
     for j in range(6):
         dis1.append(indices[row['dist1name']])
         dis2.append(indices[row['exemplar{}'.format(j+1)]])
@@ -75,4 +67,4 @@ for category in sorted(set(categories)):
 
     offset += X.shape[0]
 
-np.savetxt('vet_mmc_ind_pca.txt', features, fmt='%.18f')
+np.savetxt('vet_mmc_ind.txt', features, fmt='%.18f')
