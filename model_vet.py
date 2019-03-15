@@ -87,7 +87,7 @@ best_results = {}
 for category in categories:
     data = vet_trials[vet_trials['Category'] == category]
     trials = Trials()
-    best_parms = fmin(model_loss, space=space, algo=tpe.suggest, max_evals=10000, trials=trials)
+    best_parms = fmin(model_loss, space=space, algo=tpe.suggest, max_evals=100, trials=trials)
     best_index = np.nanargmin(trials.losses())
     best_predictions = trials.results[best_index]['predictions']
     best_loss = trials.results[best_index]['loss']
