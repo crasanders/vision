@@ -1,50 +1,56 @@
-from keras.applications import vgg16, inception_v3, resnet50, densenet
+import os
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+
+from keras.applications import resnet50
 from keras.preprocessing import image
 from keras.models import Model
+from keras.layers.pooling import GlobalMaxPooling2D, GlobalAveragePooling2D
 import keras.backend as K
 import numpy as np
-import os
+import pickle
 
-directory = 'VET'
+directory = 'VET Raw'
 nPixels = 224
 
 X = []
-categories = []
 images = []
 for subdir, dirs, files in os.walk(directory):
     dirs.sort()
     for file in sorted(files):
         if file.endswith(".bmp"):
             images.append(file)
-            categories.append(subdir.split('/')[1])
             img = image.load_img(os.path.join(subdir, file), target_size=(nPixels, nPixels))
             x = image.img_to_array(img)
             X.append(x)
 X = np.stack(X)
+X = resnet50.preprocess_input(X)
 
-np.savetxt('categories.txt', categories, fmt='%s')
-np.savetxt('images.txt', images, fmt='%s')
+feature_sets = {}
+layers = ['activation_{}'.format(i) for i in range(1, 50)] + ['fc1000']
 
-image_vectors = X[:, :, :, 0].reshape((X.shape[0], -1))
-np.savetxt('vet_pixels.txt', image_vectors, fmt='%.3i')
+for layer in layers:
+    feature_sets[layer] = {}
+    base_model = resnet50.ResNet50()
 
-base_model = vgg16.VGG16(weights='imagenet', include_top=True, pooling='avg')
-model = Model(inputs=base_model.input, outputs=base_model.get_layer('fc2').output)
-features = model.predict(vgg16.preprocess_input(X.copy()))
-np.savetxt('vet_vgg16.txt', features, fmt='%.18f')
-K.clear_session()
+    x = base_model.get_layer(layer).output
 
-model = inception_v3.InceptionV3(weights='imagenet', include_top=False, pooling='avg')
-features = model.predict(inception_v3.preprocess_input(X.copy()))
-np.savetxt('vet_inceptionv3.txt', features, fmt='%.18f')
-K.clear_session()
+    if layer != 'fc1000':
+        x = GlobalAveragePooling2D()(x)
 
-model = resnet50.ResNet50(weights='imagenet', include_top=False, pooling='avg')
-features = model.predict(resnet50.preprocess_input(X.copy()))
-np.savetxt('vet_resnet50.txt', features, fmt='%.18f')
-K.clear_session()
+    model = Model(inputs=base_model.input, outputs=x)
+    feature_sets[layer]= model.predict(X)
 
-model = densenet.DenseNet201(weights='imagenet', include_top=False, pooling='avg')
-features = model.predict(densenet.preprocess_input(X.copy()))
-np.savetxt('vet_densenet201.txt', features, fmt='%.18f')
-K.clear_session()
+    K.clear_session() #just to be safe
+
+image_features = {}
+for i, image in enumerate(images):
+    image_features[image] = {}
+    for j, layer in enumerate(layers):
+        image_features[image][j] = feature_sets[layer][i]
+
+with open('resnet50_features.pkl', 'wb') as file:
+    pickle.dump(image_features, file)
+
+
+
