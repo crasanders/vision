@@ -38,14 +38,14 @@ def data():
 def create_model(train_gen, val_gen):
     save_dir = 'Plane Classifiers'
     ncat = 25
+    dropout = .5
 
     nlayers = {{choice([0, 1, 2, 3, 4])}}
     nunits = {{choice([64, 128, 256, 512, 1024])}}
-    dropout = {{uniform(.2, .8)}}
     loglr = {{uniform(-5, -1)}}
     lr = 10 ** loglr
 
-    hyperparms = [nlayers, nunits, dropout, loglr]
+    hyperparms = [nlayers, nunits, loglr]
 
     base_model = DenseNet121(include_top=False, pooling='avg')
 
@@ -69,13 +69,14 @@ def create_model(train_gen, val_gen):
     checkpoint = ModelCheckpoint(join(save_dir, '{}.hdf5'.format(hyperparms)), save_best_only=True)
 
     result = model.fit_generator(train_gen,
-                                 epochs=50,
+                                 epochs=60,
                                  validation_data=val_gen,
                                  callbacks=[checkpoint],
-                                 verbose=True)
+                                 verbose=False)
 
     validation_acc = np.amax(result.history['val_acc'])
-    print(validation_acc, hyperparms)
+    with open('plane_classifier_results.txt', 'a') as f:
+        f.write(str(validation_acc) + ' ' + str(hyperparms) + '\n')
     return {'loss': -validation_acc, 'status': STATUS_OK, 'model': model}
 
 
